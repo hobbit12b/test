@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Toverfee in Phaser</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+</head>
+<body>
+<script>
+const config = {
+  type: Phaser.AUTO,
+  width: 960,
+  height: 540,
+  backgroundColor: "#222222",
+  scene: { preload, create }
+};
+
+new Phaser.Game(config);
+
+function preload () {
+  // Jouw JSON is TexturePacker style, dit werkt direct met load.atlas
+  this.load.atlas(
+    "fee",
+    "assets/tover-table-380-256.png",
+    "assets/tover-table-380-256.json"
+  );
+}
+
+function create () {
+  // Zet de sprite ongeveer links, zodat je ruimte rechts houdt
+  const sprite = this.add.sprite(220, 320, "fee", "tover-table-380-2560.png");
+  sprite.setScale(1);
+
+  // Animatie maken, jouw frames heten: tover-table-380-2560.png t/m ...71.png
+  this.anims.create({
+    key: "tover",
+    frames: this.anims.generateFrameNames("fee", {
+      prefix: "tover-table-380-256",
+      start: 0,
+      end: 71,
+      suffix: ".png"
+    }),
+    frameRate: 24,
+    repeat: -1
+  });
+
+  sprite.play("tover");
+}
+</script>
+</body>
+</html>
