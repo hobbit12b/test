@@ -3,71 +3,109 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Phaser, uil idle animatie</title>
+  <title>Phaser uil idle animatie</title>
+
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #f2f2f2; }
-    #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    canvas { max-width: 100%; max-height: 100%; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f2f2f2;
+      font-family: Arial, sans-serif;
+    }
+
+    #game {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
     .hint {
-      position: fixed; left: 12px; bottom: 12px;
-      font-family: Arial, sans-serif; font-size: 14px; color: #333;
-      background: rgba(255,255,255,0.9); padding: 8px 10px; border-radius: 10px;
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      font-size: 14px;
+      color: #333;
+      background: rgba(255,255,255,0.9);
+      padding: 8px 10px;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="game"></div>
-  <div class="hint">Tik of klik: pauze aan of uit</div>
 
-  <!-- Phaser via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+<div id="game"></div>
+<div class="hint">Klik of tik om animatie te pauzeren</div>
 
-  <script>
-    const SPRITESHEET_FILE = "owl_idle.png";
-    const FRAME_W = 256;
-    const FRAME_H = 256;
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
 
-    const config = {
-      type: Phaser.AUTO,
-      parent: "game",
-      width: 800,
-      height: 450,
-      backgroundColor: "#f2f2f2",
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
-      },
-      scene: { preload, create }
-    };
+<script>
+  const SPRITESHEET_FILE = "owl_idle.png";
+  const FRAME_W = 128;
+  const FRAME_H = 128;
 
-    new Phaser.Game(config);
-
-    function preload() {
-      this.load.spritesheet("owlIdle", SPRITESHEET_FILE, {
-        frameWidth: FRAME_W,
-        frameHeight: FRAME_H
-      });
+  const config = {
+    type: Phaser.AUTO,
+    parent: "game",
+    width: 800,
+    height: 450,
+    backgroundColor: "#f2f2f2",
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    scene: {
+      preload,
+      create
     }
+  };
 
-    function create() {
-      this.anims.create({
-        key: "idle",
-        frames: this.anims.generateFrameNumbers("owlIdle", { start: 0, end: 7 }),
-        frameRate: 8,
-        repeat: -1
-      });
+  new Phaser.Game(config);
 
-      const owl = this.add.sprite(config.width / 2, config.height / 2, "owlIdle");
-      owl.setOrigin(0.5, 0.65);
-      owl.play("idle");
+  function preload() {
+    this.load.spritesheet("owlIdle", SPRITESHEET_FILE, {
+      frameWidth: FRAME_W,
+      frameHeight: FRAME_H
+    });
+  }
 
-      let paused = false;
-      this.input.on("pointerdown", () => {
-        paused = !paused;
-        if (paused) owl.anims.pause();
-        else owl.anims.resume();
-      });
-    }
-  </script>
+  function create() {
+
+    this.anims.create({
+      key: "idle",
+      frames: this.anims.generateFrameNumbers("owlIdle", { start: 0, end: 3 }),
+      frameRate: 6,
+      repeat: -1
+    });
+
+    const owl = this.add.sprite(
+      config.width / 2,
+      config.height / 2,
+      "owlIdle"
+    );
+
+    owl.setOrigin(0.5, 0.5);
+    owl.play("idle");
+
+    let paused = false;
+
+    this.input.on("pointerdown", () => {
+      paused = !paused;
+      if (paused) {
+        owl.anims.pause();
+      } else {
+        owl.anims.resume();
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
