@@ -64,19 +64,25 @@
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
 
 <script>
-  const config = {
-    type: Phaser.AUTO,
-    parent: "game",
-    width: 1100,
-    height: 520,
-    backgroundColor: "#f2f2f2",
-    render: { roundPixels: true },
-    scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH
-    },
-    scene: { preload, create, update }
-  };
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+const config = {
+  type: Phaser.AUTO,
+  parent: "game",
+  width: 1100,
+  height: 520,
+  backgroundColor: "#f2f2f2",
+  resolution: DPR,
+  render: {
+    antialias: true,
+    roundPixels: false
+  },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: { preload, create }
+};
 
   new Phaser.Game(config);
 
