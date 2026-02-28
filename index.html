@@ -3,279 +3,172 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Uil spritesheet vergelijking (HQ, GitHub proof)</title>
-
+  <title>Phaser, adaptive uil test (kies later 256 of 512)</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #f2f2f2;
-      font-family: Arial, sans-serif;
-      color: #222;
-    }
-
-    #game {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Belangrijk: voorkom geforceerde pixelated canvas rendering */
-    canvas {
-      max-width: 100%;
-      max-height: 100%;
-      image-rendering: auto;
-    }
-
-    .hint {
+    html, body { margin: 0; padding: 0; height: 100%; background: #f2f2f2; }
+    #game { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    canvas { max-width: 100%; max-height: 100%; image-rendering: auto; }
+    .hud {
       position: fixed;
       left: 12px;
       bottom: 12px;
+      font-family: Arial, sans-serif;
       font-size: 14px;
-      color: #333;
+      color: #222;
       background: rgba(255,255,255,0.92);
       padding: 10px 12px;
       border-radius: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      line-height: 1.45;
+      max-width: 360px;
     }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.06);
-      white-space: nowrap;
-    }
-
     .kbd {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size: 12px;
       padding: 2px 6px;
       border-radius: 6px;
       background: rgba(0,0,0,0.08);
+      margin: 0 2px;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
+  <div id="game"></div>
+  <div class="hud" id="hud"></div>
 
-<div id="game"></div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
 
-<div class="hint">
-  <span class="pill">Klik of tik: pauze</span>
-  <span class="pill"><span class="kbd">plus</span> sneller</span>
-  <span class="pill"><span class="kbd">min</span> langzamer</span>
-  <span class="pill"><span class="kbd">F</span> filtering: LINEAR of NEAREST</span>
-  <span class="pill"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> grootte: 220, 256, 320</span>
-  <span class="pill" id="filterStatus">Filtering: LINEAR</span>
-  <span class="pill" id="sizeStatus">Weergave: 220 px</span>
-</div>
+  <script>
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
-
-<script>
-  // Bestandsnamen naast deze HTML
-  const SHEETS = [
-    { key: "owl512", file: "owl_idle_fixed_512.png", frame: 512, label: "512 px per frame" },
-    { key: "owl256", file: "owl_idle_fixed_256.png", frame: 256, label: "256 px per frame" },
-    { key: "owl128", file: "owl_idle_fixed_128_hq.png", frame: 128, label: "128 px per frame" }
-  ];
-
-  // GitHub proof: render op hogere resolutie om canvas scaling artefacts te verminderen
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-  let paused = false;
-  let frameRate = 6;
-
-  // Start met LINEAR, dit is doorgaans mooier bij schalen
-  let useLinear = true;
-
-  // Schaal presets: hiermee kun je eerlijk vergelijken
-  const SIZE_PRESETS = [220, 256, 320];
-  let sizeIndex = 0;
-  let targetDisplaySize = SIZE_PRESETS[sizeIndex];
-
-  const config = {
-    type: Phaser.AUTO,
-    parent: "game",
-    width: 1100,
-    height: 520,
-    backgroundColor: "#f2f2f2",
-    resolution: DPR,
-    render: {
-      antialias: true,
-      roundPixels: false
-    },
-    scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH
-    },
-    scene: { preload, create }
-  };
-
-  new Phaser.Game(config);
-
-  function preload() {
-    SHEETS.forEach(s => {
-      this.load.spritesheet(s.key, s.file, {
-        frameWidth: s.frame,
-        frameHeight: s.frame
-      });
-    });
-  }
-
-  function create() {
-    const scene = this;
-
-    // Animaties
-    SHEETS.forEach(s => {
-      scene.anims.create({
-        key: s.key + "_idle",
-        frames: scene.anims.generateFrameNumbers(s.key, { start: 0, end: 3 }),
-        frameRate,
-        repeat: -1
-      });
-    });
-
-    // Layout
-    const marginX = 60;
-    const centerY = 280;
-    const colW = (config.width - marginX * 2) / 3;
-
-    const sprites = [];
-    const metaTexts = [];
-
-    SHEETS.forEach((s, i) => {
-      const x = marginX + colW * i + colW / 2;
-
-      const sprite = scene.add.sprite(x, centerY, s.key);
-      sprite.setOrigin(0.5, 0.5);
-
-      sprite.play(s.key + "_idle");
-      sprites.push(sprite);
-
-      scene.add.text(x, 70, s.label, {
-        fontFamily: "Arial",
-        fontSize: "18px",
-        color: "#222"
-      }).setOrigin(0.5, 0.5);
-
-      const meta = scene.add.text(x, 98, "", {
-        fontFamily: "Arial",
-        fontSize: "14px",
-        color: "#444"
-      }).setOrigin(0.5, 0.5);
-
-      metaTexts.push(meta);
-    });
-
-    const setMeta = () => {
-      metaTexts.forEach((t, i) => {
-        const s = SHEETS[i];
-        const scale = targetDisplaySize / s.frame;
-        t.setText(`frame: ${s.frame}×${s.frame}, schaal: ${scale.toFixed(3)}`);
-      });
-      document.getElementById("sizeStatus").textContent = `Weergave: ${targetDisplaySize} px`;
+    // Je kunt straks in productie hiervan maken:
+    // 256 als default, 512 alleen als nodig
+    const ASSETS = {
+      "256": { key: "owl256", file: "assets/owl_idle_256.png", frame: 256, label: "256 geladen" },
+      "512": { key: "owl512", file: "assets/owl_idle_512.png", frame: 512, label: "512 geladen" }
     };
 
-    const applyScale = () => {
-      sprites.forEach((sp, i) => {
-        const s = SHEETS[i];
-        sp.setScale(targetDisplaySize / s.frame);
-      });
-      setMeta();
+    const config = {
+      type: Phaser.AUTO,
+      parent: "game",
+      width: 900,
+      height: 520,
+      backgroundColor: "#f2f2f2",
+      resolution: DPR,
+      render: { antialias: true, roundPixels: false },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scene: { preload, create, update }
     };
 
-    const applyFiltering = () => {
-      const mode = useLinear
-        ? Phaser.Textures.FilterMode.LINEAR
-        : Phaser.Textures.FilterMode.NEAREST;
+    new Phaser.Game(config);
 
-      SHEETS.forEach(s => {
-        const tex = scene.textures.get(s.key);
-        if (tex && tex.setFilter) tex.setFilter(mode);
+    let mode = "256";     // start met 256
+    let owl;
+    let hud;
+    let targetHeight = 240; // startgrootte in pixels op het scherm
+    let lastUpdate = 0;
+
+    function preload() {
+      Object.values(ASSETS).forEach(a => {
+        this.load.spritesheet(a.key, a.file, { frameWidth: a.frame, frameHeight: a.frame });
+      });
+    }
+
+    function create() {
+      hud = document.getElementById("hud");
+
+      // Zet filtering op LINEAR voor illustratieve sprites
+      Object.values(ASSETS).forEach(a => {
+        const tex = this.textures.get(a.key);
+        if (tex && tex.setFilter) tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
       });
 
-      document.getElementById("filterStatus").textContent =
-        `Filtering: ${useLinear ? "LINEAR" : "NEAREST"}`;
-    };
-
-    const setAnimSpeed = () => {
-      SHEETS.forEach(s => {
-        const anim = scene.anims.get(s.key + "_idle");
-        if (anim) anim.frameRate = frameRate;
+      // Animaties voor beide assets
+      Object.values(ASSETS).forEach(a => {
+        this.anims.create({
+          key: a.key + "_idle",
+          frames: this.anims.generateFrameNumbers(a.key, { start: 0, end: 3 }),
+          frameRate: 6,
+          repeat: -1
+        });
       });
 
-      sprites.forEach(sp => {
-        const a = sp.anims.currentAnim;
-        if (a) a.frameRate = frameRate;
+      owl = this.add.sprite(config.width / 2, config.height / 2, ASSETS[mode].key);
+      owl.setOrigin(0.5, 0.5);
+      owl.play(ASSETS[mode].key + "_idle");
+
+      applyTargetHeight(this);
+
+      this.input.keyboard.on("keydown", (ev) => {
+        const k = ev.key;
+
+        // Wissel asset
+        if (k === "1") setMode(this, "256");
+        if (k === "2") setMode(this, "512");
+
+        // Maak groter of kleiner
+        if (k === "+" || k === "=") { targetHeight = clamp(targetHeight + 20, 60, 480); applyTargetHeight(this); }
+        if (k === "-" || k === "_") { targetHeight = clamp(targetHeight - 20, 60, 480); applyTargetHeight(this); }
       });
-    };
+    }
 
-    // Init
-    applyScale();
-    applyFiltering();
-    setAnimSpeed();
+    function setMode(scene, newMode) {
+      if (mode === newMode) return;
+      mode = newMode;
 
-    // Klik of tik: pauze
-    scene.input.on("pointerdown", () => {
-      paused = !paused;
-      sprites.forEach(sp => paused ? sp.anims.pause() : sp.anims.resume());
-    });
+      const current = ASSETS[mode];
+      owl.setTexture(current.key);
+      owl.play(current.key + "_idle", true);
 
-    // Toetsen
-    scene.input.keyboard.on("keydown", (ev) => {
-      const key = ev.key;
+      applyTargetHeight(scene);
+      updateHud(scene, true);
+    }
 
-      if (key === "f" || key === "F") {
-        useLinear = !useLinear;
-        applyFiltering();
-        return;
+    function applyTargetHeight(scene) {
+      const a = ASSETS[mode];
+
+      // Frame is vierkant, dus hoogte = frame
+      const scale = targetHeight / a.frame;
+      owl.setScale(scale);
+      updateHud(scene, true);
+    }
+
+    function update(scene, time) {
+      // HUD niet elke frame, maar 4x per seconde
+      if (time - lastUpdate > 250) {
+        lastUpdate = time;
+        updateHud(scene, false);
       }
+    }
 
-      if (key === "+" || key === "=") {
-        frameRate = Phaser.Math.Clamp(frameRate + 1, 1, 24);
-        setAnimSpeed();
-        return;
-      }
+    function updateHud(scene, force) {
+      const a = ASSETS[mode];
 
-      if (key === "-" || key === "_") {
-        frameRate = Phaser.Math.Clamp(frameRate - 1, 1, 24);
-        setAnimSpeed();
-        return;
-      }
+      // Hoe groot is de sprite ongeveer op het scherm
+      const displayH = a.frame * owl.scaleY;
 
-      if (key === "1") {
-        sizeIndex = 0;
-        targetDisplaySize = SIZE_PRESETS[sizeIndex];
-        applyScale();
-        return;
-      }
+      // Vuistregel
+      // Als je sprite op het scherm hoger wordt dan ~260-300 px,
+      // dan zie je vaak voordeel van 512 op retina
+      const hint =
+        displayH >= 280
+          ? "Je toont de uil best groot, 512 kan zichtbaar mooier zijn."
+          : "Deze grootte is vaak prima met 256, 512 is mogelijk overkill.";
 
-      if (key === "2") {
-        sizeIndex = 1;
-        targetDisplaySize = SIZE_PRESETS[sizeIndex];
-        applyScale();
-        return;
-      }
+      hud.innerHTML =
+        "Toetsen: <span class='kbd'>1</span> 256, <span class='kbd'>2</span> 512, " +
+        "<span class='kbd'>plus</span> groter, <span class='kbd'>min</span> kleiner<br><br>" +
+        "devicePixelRatio: " + (window.devicePixelRatio || 1).toFixed(2) + "<br>" +
+        "renderer resolution: " + DPR.toFixed(2) + "<br>" +
+        "asset: " + a.label + "<br>" +
+        "frame: " + a.frame + " px<br>" +
+        "doel hoogte: " + targetHeight + " px<br>" +
+        "actuele hoogte: " + displayH.toFixed(0) + " px<br><br>" +
+        hint;
+    }
 
-      if (key === "3") {
-        sizeIndex = 2;
-        targetDisplaySize = SIZE_PRESETS[sizeIndex];
-        applyScale();
-        return;
-      }
-    });
-  }
-</script>
-
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  </script>
 </body>
 </html>
