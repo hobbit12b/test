@@ -3,77 +3,194 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Spritesheet viewer, uil</title>
+  <title>Uil spritesheet vergelijking</title>
 
   <style>
-    body {
+    html, body {
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      height: 100%;
       background: #f2f2f2;
       font-family: Arial, sans-serif;
+      color: #222;
     }
 
-    h1 {
-      margin-bottom: 20px;
-      font-size: 20px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, auto);
-      gap: 20px;
+    #game {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     canvas {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .hint {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      font-size: 14px;
+      color: #333;
+      background: rgba(255,255,255,0.9);
+      padding: 8px 10px;
+      border-radius: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.06);
     }
   </style>
 </head>
 <body>
 
-<h1>Alle frames tegelijk</h1>
-<div class="grid" id="grid"></div>
+<div id="game"></div>
+<div class="hint">
+  <span class="pill">Klik of tik: pauze</span>
+  <span class="pill">Toets, plus: sneller</span>
+  <span class="pill">Toets, min: langzamer</span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
 
 <script>
-  const IMAGE_SRC = "owl_idle_fixed_256.png";
-  const FRAME_W = 256;
-  const FRAME_H = 256;
-
-  const img = new Image();
-  img.src = IMAGE_SRC;
-
-  img.onload = () => {
-    const cols = img.width / FRAME_W;
-    const rows = img.height / FRAME_H;
-    const grid = document.getElementById("grid");
-
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-
-        const canvas = document.createElement("canvas");
-        canvas.width = FRAME_W;
-        canvas.height = FRAME_H;
-
-        const ctx = canvas.getContext("2d");
-
-        ctx.drawImage(
-          img,
-          x * FRAME_W,
-          y * FRAME_H,
-          FRAME_W,
-          FRAME_H,
-          0,
-          0,
-          FRAME_W,
-          FRAME_H
-        );
-
-        grid.appendChild(canvas);
-      }
-    }
+  const config = {
+    type: Phaser.AUTO,
+    parent: "game",
+    width: 1100,
+    height: 520,
+    backgroundColor: "#f2f2f2",
+    render: { roundPixels: true },
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    scene: { preload, create, update }
   };
+
+  new Phaser.Game(config);
+
+  const SHEETS = [
+    { key: "owl512", file: "owl_idle_fixed_512.png", frame: 512, label: "512 px per frame (top kwaliteit)" },
+    { key: "owl256", file: "owl_idle_fixed_256.png", frame: 256, label: "256 px per frame (balans)" },
+    { key: "owl128", file: "owl_idle_fixed_128_hq.png", frame: 128, label: "128 px per frame (kleinst)" }
+  ];
+
+  let paused = false;
+  let frameRate = 6;
+  let sprites = [];
+  let labels = [];
+
+  function preload() {
+    SHEETS.forEach(s => {
+      this.load.spritesheet(s.key, s.file, {
+        frameWidth: s.frame,
+        frameHeight: s.frame
+      });
+    });
+  }
+
+  function create() {
+    // Animaties aanmaken
+    SHEETS.forEach(s => {
+      this.anims.create({
+        key: s.key + "_idle",
+        frames: this.anims.generateFrameNumbers(s.key, { start: 0, end: 3 }),
+        frameRate,
+        repeat: -1
+      });
+    });
+
+    // Layout
+    const marginX = 60;
+    const topY = 250;
+    const colW = (config.width - marginX * 2) / 3;
+
+    // Alles dezelfde visuele grootte geven
+    // We schalen ieder sprite naar ongeveer 220 px hoogte
+    const targetDisplaySize = 220;
+
+    SHEETS.forEach((s, i) => {
+      const x = marginX + colW * i + colW / 2;
+
+      const spr = this.add.sprite(x, topY, s.key);
+      spr.setOrigin(0.5, 0.5);
+
+      const scale = targetDisplaySize / s.frame;
+      spr.setScale(scale);
+
+      spr.play(s.key + "_idle");
+
+      sprites.push(spr);
+
+      const t = this.add.text(
+        x,
+        60,
+        s.label,
+        {
+          fontFamily: "Arial",
+          fontSize: "18px",
+          color: "#222"
+        }
+      ).setOrigin(0.5, 0.5);
+
+      labels.push(t);
+
+      // Sub label met schaal info
+      this.add.text(
+        x,
+        90,
+        `frame, ${s.frame}×${s.frame}, schaal, ${scale.toFixed(3)}`,
+        {
+          fontFamily: "Arial",
+          fontSize: "14px",
+          color: "#444"
+        }
+      ).setOrigin(0.5, 0.5);
+    });
+
+    // Interactie: pauze
+    this.input.on("pointerdown", () => {
+      paused = !paused;
+      sprites.forEach(sp => paused ? sp.anims.pause() : sp.anims.resume());
+    });
+
+    // Interactie: snelheid
+    this.input.keyboard.on("keydown", (ev) => {
+      if (ev.key === "+" || ev.key === "=") changeSpeed(1);
+      if (ev.key === "-" || ev.key === "_") changeSpeed(-1);
+    });
+
+    const changeSpeed = (dir) => {
+      frameRate = Phaser.Math.Clamp(frameRate + dir, 1, 24);
+
+      // Update alle animaties door opnieuw af te spelen met nieuwe frameRate
+      SHEETS.forEach(s => {
+        const animKey = s.key + "_idle";
+        const anim = this.anims.get(animKey);
+        anim.frameRate = frameRate;
+      });
+
+      sprites.forEach(sp => {
+        const a = sp.anims.currentAnim;
+        if (a) a.frameRate = frameRate;
+      });
+    };
+  }
+
+  function update() {
+    // niets nodig, animaties draaien vanzelf
+  }
 </script>
 
 </body>
